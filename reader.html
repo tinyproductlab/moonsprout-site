@@ -69,8 +69,10 @@ img{display:block}
 .r-title{font-size:15px;font-weight:700;color:var(--purple-dark);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .icon-btn{border:none;background:transparent;font-size:20px;color:var(--purple-dark);padding:6px;line-height:1}
 .icon-btn.on{color:#E85D6B}
-.r-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;position:relative;overflow:hidden}
-.page-img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px;box-shadow:0 18px 44px rgba(34,35,58,.16);background:#fff}
+.r-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;position:relative;overflow:hidden;touch-action:pan-y;cursor:grab}
+.r-stage.dragging{cursor:grabbing}
+.page-img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px;box-shadow:0 18px 44px rgba(34,35,58,.16);background:#fff;transition:transform .28s cubic-bezier(.22,.61,.36,1),opacity .28s;user-select:none}
+.page-img.noanim{transition:none}
 .tap-hint{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);background:rgba(34,35,58,.55);color:#fff;font-size:11px;border-radius:99px;padding:4px 12px;opacity:0;transition:opacity .3s;pointer-events:none}
 .showing .tap-hint{opacity:1}
 .r-pageno{position:absolute;bottom:12px;right:16px;background:rgba(255,255,255,.92);color:var(--purple);font-size:12px;font-weight:700;padding:4px 11px;border-radius:99px}
@@ -133,9 +135,9 @@ img{display:block}
     <div class="r-title" id="rTitle"></div>
     <button class="icon-btn" id="favBtn" onclick="toggleFav()">♡</button>
   </div>
-  <div class="r-stage" id="rStage" onclick="pageTap(event)">
+  <div class="r-stage" id="rStage">
     <img class="page-img" id="pageImg" alt="绘本页面">
-    <div class="tap-hint">点击左右翻页</div>
+    <div class="tap-hint">点击或左右滑动翻页</div>
     <div class="r-pageno" id="rPageNo"></div>
   </div>
   <div class="r-controls">
@@ -195,6 +197,13 @@ img{display:block}
 
   // ------- 初始化 -------
   function init(){
+    // 翻页手势绑定
+    STAGE = $id('rStage');
+    STAGE.addEventListener('pointerdown', onDown);
+    STAGE.addEventListener('pointermove', onMove);
+    STAGE.addEventListener('pointerup', onUp);
+    STAGE.addEventListener('pointercancel', onUp);
+
     // 音色下拉
     var vs = $id('voiceSel');
     VOICES.forEach(function(v,i){ var o=document.createElement('option'); o.value=v.v; o.textContent=v.label; if(i===0)o.selected=true; vs.appendChild(o); });
@@ -310,30 +319,114 @@ img{display:block}
   }
   function closeReader(){ $id('readerView').classList.remove('show'); stopNar(); render(); }
 
-  function setPage(){
+  function setPage(){ _inFrom = 0; applyPage(); }
+
+  // ------- 阅读视图 ---------
+  var _inFrom = 0;        // 新页滑入方向(+1 自右, -1 自左)
+  var _animating = false; // 翻页动画锁
+  var STAGE = null;
+
+  function applyPage(){
     var img = $id('pageImg');
-    img.src = pageURL(cur);
+    var from = _inFrom; _inFrom = 0;
+    img.classList.add('noanim');
+    img.style.transform = from!==0 ? 'translateX(' + (from*70) + 'px)' : '';
+    img.style.opacity = '0';
     $id('rPageNo').textContent = (cur+1) + ' / ' + curPages.length;
     $id('prevBtn').disabled = cur===0;
     $id('nextBtn').disabled = cur>=curPages.length-1;
-    // 保存进度
+    img.src = pageURL(cur);
     progress[curBook.id] = { page:cur, total:curPages.length, updated:new Date().toISOString() };
-    saveProg();
-    setNarUI(false);
+    saveProg(); setNarUI(false);
+    void img.offsetWidth;                    // 强制回流以应用滑入位
+    img.classList.remove('noanim');
+    img.style.transform = '';
+    img.style.opacity = '1';
   }
 
-  function stepPage(d){
-    if(curBook && d<0 && cur<=0) return;
-    if(curBook && d>0 && cur>=curPages.length-1) return;
-    cur += d;
-    setPage();
+  function gotoBy(need){
+    if(_animating || !curBook) return;
+    if(need>0 && cur>=curPages.length-1) return;
+    if(need<0 && cur<=0) return;
+    var img = $id('pageImg');
+    var exitSign = -need;                    // 旧页滑出方向
+    img.classList.remove('noanim');
+    img.style.transform = 'translateX(' + (exitSign*150) + 'px)';
+    img.style.opacity = '.35';
+    _animating = true;
+    setTimeout(function(){
+      cur += need;
+      _inFrom = exitSign;                    // 新页从滑出的一侧反向滑入
+      applyPage();
+      _animating = false;
+    }, 190);
   }
-  function pageTap(ev){
-    var stage = $id('rStage');
-    stage.classList.add('showing'); clearTimeout(stage._t); stage._t=setTimeout(function(){stage.classList.remove('showing');},1200);
-    var w = stage.clientWidth;
-    var x = ev.clientX;
-    if(x < w*0.35){ stepPage(-1); } else if(x > w*0.65){ stepPage(1); }
+
+  function stepPage(d){ gotoBy(d); }
+
+  function snapPage(){
+    var img = $id('pageImg');
+    img.classList.remove('noanim');
+    img.style.transform = '';
+    img.style.opacity = '1';
+  }
+
+  // ---- 拖拽 / 点击手势（支持鼠标与触屏） ----
+  var drag = { active:false, x:0, yy:0, dx:0, swipe:false, t:0 };
+  function onDown(e){
+    drag = { active:true, x:e.clientX, yy:e.clientY, dx:0, swipe:false, t:Date.now() };
+    STAGE.classList.add('dragging');
+    STAGE.classList.add('showing');
+    clearTimeout(STAGE._t); STAGE._t=setTimeout(function(){ STAGE.classList.remove('showing'); },1200);
+  }
+  function onMove(e){
+    if(!drag.active) return;
+    var dx = e.clientX - drag.x;
+    var dy = e.clientY - drag.yy;
+    drag.dx = dx;
+    if(!drag.swipe && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)){
+      drag.swipe = true;
+      if(e.cancelable) e.preventDefault();
+    }
+    if(drag.swipe){
+      var w = STAGE.clientWidth || 600;
+      var p = Math.max(-140, Math.min(140, dx));
+      var img = $id('pageImg');
+      img.classList.add('noanim');
+      img.style.transform = 'translateX(' + p + 'px)';
+      img.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx)/(w*0.75)));
+    }
+  }
+  function onUp(e){
+    if(!drag.active) return;
+    STAGE.classList.remove('dragging');
+    var dx = drag.dx, s = Math.abs(dx);
+    if(drag.swipe && s > 60){
+      var need = dx < 0 ? 1 : -1;            // 左滑下一页，右滑上一页
+      if((need>0 && cur>=curPages.length-1) || (need<0 && cur<=0)){ snapPage(); drag.active=false; return; }
+      var img = $id('pageImg');
+      var exitSign = -need;
+      img.classList.remove('noanim');
+      img.style.transition = 'transform .18s cubic-bezier(.22,.61,.36,1),opacity .25s linear';
+      img.style.transform = 'translateX(' + (exitSign*150) + 'px)';
+      img.style.opacity = '.25';
+      _animating = true;
+      setTimeout(function(){
+        cur += need;
+        _inFrom = exitSign;
+        applyPage();
+        _animating = false;
+        img.style.transition = '';
+      }, 170);
+    } else if(!drag.swipe && s < 10 && Date.now() - drag.t < 450){
+      // 轻点 → 按左右三区翻页
+      var w = STAGE.clientWidth;
+      if(drag.x < w*0.35) stepPage(-1);
+      else if(drag.x > w*0.65) stepPage(1);
+    } else {
+      snapPage();
+    }
+    drag.active = false;
   }
 
   // ------- 朗读(TTS) -------
@@ -386,7 +479,7 @@ img{display:block}
 
   // 暴露给 onclick
   window.openBook=openBook; window.closeReader=closeReader; window.stepPage=stepPage;
-  window.pageTap=pageTap; window.toggleFav=toggleFav; window.toggleNar=toggleNar;
+  window.toggleFav=toggleFav; window.toggleNar=toggleNar;
   window.openLogin=openLogin; window.closeLogin=closeLogin; window.goHome=goHome;
   window.toggleFavFromList=toggleFavFromList;
 
