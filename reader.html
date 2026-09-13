@@ -197,12 +197,14 @@ img{display:block}
 
   // ------- 初始化 -------
   function init(){
-    // 翻页手势绑定
+    // 翻页手势绑定（mouse 兼容桌面与自动化测试，touch 兼容移动端）
     STAGE = $id('rStage');
-    STAGE.addEventListener('pointerdown', onDown);
-    STAGE.addEventListener('pointermove', onMove);
-    STAGE.addEventListener('pointerup', onUp);
-    STAGE.addEventListener('pointercancel', onUp);
+    STAGE.addEventListener('mousedown', onDown);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    STAGE.addEventListener('touchstart', onDown, {passive:true});
+    window.addEventListener('touchmove', onMove, {passive:false});
+    window.addEventListener('touchend', onUp, {passive:true});
 
     // 音色下拉
     var vs = $id('voiceSel');
@@ -371,18 +373,20 @@ img{display:block}
     img.style.opacity = '1';
   }
 
-  // ---- 拖拽 / 点击手势（支持鼠标与触屏） ----
+  // ---- 拖拽 / 点击手势（mouse + touch 通用） ----
   var drag = { active:false, x:0, yy:0, dx:0, swipe:false, t:0 };
+  function cx(e){ var t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]); return t ? t.clientX : e.clientX; }
+  function cy(e){ var t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]); return t ? t.clientY : e.clientY; }
   function onDown(e){
-    drag = { active:true, x:e.clientX, yy:e.clientY, dx:0, swipe:false, t:Date.now() };
+    drag = { active:true, x:cx(e), yy:cy(e), dx:0, swipe:false, t:Date.now() };
     STAGE.classList.add('dragging');
     STAGE.classList.add('showing');
     clearTimeout(STAGE._t); STAGE._t=setTimeout(function(){ STAGE.classList.remove('showing'); },1200);
   }
   function onMove(e){
     if(!drag.active) return;
-    var dx = e.clientX - drag.x;
-    var dy = e.clientY - drag.yy;
+    var dx = cx(e) - drag.x;
+    var dy = cy(e) - drag.yy;
     drag.dx = dx;
     if(!drag.swipe && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)){
       drag.swipe = true;
