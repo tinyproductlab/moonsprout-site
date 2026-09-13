@@ -6,6 +6,9 @@
 <title>月芽故事岛 - 儿童绘本有声故事</title>
 <meta name="description" content="月芽故事岛是一款面向儿童的原创绘本有声故事 App：数十本原创绘本、专业语音朗读、家长暖心录音，陪伴孩子每一个睡前好时光。">
 <meta name="theme-color" content="#6F6AE8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
 <style>
 :root{
   --purple:#6F6AE8; --purple-dark:#4B48B8; --ink:#22233A;
@@ -187,5 +190,13 @@ a:hover{opacity:.85}
   <div class="copyright">© 2026 小产品实验室 · 月芽故事岛</div>
 
 </div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(e){ console.warn('SW 注册失败：', e); });
+  });
+}
+</script>
 </body>
 </html>

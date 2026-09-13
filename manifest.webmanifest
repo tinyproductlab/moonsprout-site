@@ -1,0 +1,17 @@
+{
+  "name": "月芽故事岛",
+  "short_name": "月芽故事岛",
+  "description": "月芽故事岛网页版：原创绘本免费在线阅读，有声朗读、收藏与阅读进度",
+  "lang": "zh-CN",
+  "start_url": "/reader",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#FFF9F1",
+  "theme_color": "#6F6AE8",
+  "icons": [
+    { "src": "assets/icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -6,6 +6,12 @@
 <title>月芽故事岛 - 在线绘本阅读</title>
 <meta name="description" content="月芽故事岛网页版在线阅读：所有原创绘本免费在线阅读，有声朗读、收藏与阅读进度同步丰富阅读体验。">
 <meta name="theme-color" content="#6F6AE8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="月芽故事岛">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 :root{
   --purple:#6F6AE8; --purple-dark:#4B48B8; --purple-soft:#EFEDFD;
@@ -489,6 +495,13 @@ img{display:block}
 
   document.addEventListener('DOMContentLoaded', init);
 })();
+
+// PWA Service Worker 注册
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(e){ console.warn('SW 注册失败：', e); });
+  });
+}
 </script>
 </body>
 </html>
