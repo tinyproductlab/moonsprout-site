@@ -455,11 +455,12 @@ img{display:block}
     var cache_key = curBook.id + '_' + String(pg.imageKey).replace(/[^a-zA-Z0-9]/g,'_');
     synthesize(text, voice, cache_key);
   }
-  function synthesize(text, voice, cache_key){
+  function synthesize(text, voice, cache_key, retried){
+    retried = retried || 0;
     setNarUI(true);
     fetch(TTS, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ text:text, voice:voice, cache_key:cache_key }) })
       .then(function(r){
-        if(!r.ok){ return r.text().then(function(t){ throw new Error(t||('HTTP '+r.status)); }); }
+        if(!r.ok){ return r.text().then(function(t){ var e=new Error('E'+r.status); e.status=r.status; e.body=t; throw e; }); }
         return r.blob();
       })
       .then(function(blob){
@@ -471,8 +472,19 @@ img{display:block}
         audio.play().catch(function(){ stopNar(); alert('无法自动播放，请点击音量图标允许播放后重试。'); });
       })
       .catch(function(e){
+        var st = e.status || (String(e.body||e.message||'').match(/\b([0-9]{3})\b/)||['520'])[0];
+        var body = String(e.body||e.message||'');
+        // 偶发的源站 5xx 抖动：自动重试一次
+        if((st==='520'||st==='503'||st==='500'||st==='504') && retried<1 && !/quota|limit|exhaust|429/i.test(body)){
+          setTimeout(function(){ synthesize(text, voice, cache_key, retried+1); }, 900);
+          return;
+        }
         setNarUI(false);
-        alert('语音合成失败：' + String(e.message||e).slice(0,120));
+        var msg;
+        if(/quota|exhaust|limit|429/i.test(body)) msg = '当前免费语音额度已用完，请稍后再试。';
+        else if(st==='520'||st==='503'||st==='504') msg = '语音服务暂时繁忙，请稍后重试（'+st+'）。';
+        else msg = '语音合成失败（'+st+'），请稍后重试。';
+        alert(msg);
       });
   }
   function playOnce(url){
