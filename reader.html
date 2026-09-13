@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月芽故事岛 - 在线绘本阅读</title>
+<meta name="description" content="月芽故事岛网页版在线阅读：所有原创绘本免费在线阅读，有声朗读、收藏与阅读进度同步丰富阅读体验。">
+<meta name="theme-color" content="#6F6AE8">
+<style>
+:root{
+  --purple:#6F6AE8; --purple-dark:#4B48B8; --purple-soft:#EFEDFD;
+  --ink:#22233A; --muted:#6F7287; --line:#E9E6F4; --bg:#FFF9F1; --card:#fff;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg);-webkit-font-smoothing:antialiased;line-height:1.6}
+button{font-family:inherit;cursor:pointer}
+a{color:var(--purple);text-decoration:none}
+img{display:block}
+
+/* ---- 顶栏 ---- */
+.topbar{position:sticky;top:0;z-index:40;background:rgba(255,249,241,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar-in{max-width:1000px;margin:0 auto;padding:13px 22px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;color:var(--purple-dark);cursor:pointer}
+.brand img{width:30px;height:30px;border-radius:8px;box-shadow:0 4px 10px rgba(75,72,184,.22)}
+.topbar .spacer{flex:1}
+.pill{border:1px solid var(--line);background:#fff;color:var(--purple-dark);border-radius:999px;padding:7px 15px;font-size:13px;font-weight:600}
+.pill.solid{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:0 6px 14px rgba(111,106,232,.28)}
+.pill:hover{opacity:.9}
+.pill.only-dot{position:relative}
+.pill.only-dot::after{content:"";position:absolute;top:7px;right:8px;width:7px;height:7px;border-radius:50%;background:#FF6B6B}
+
+/* ---- 主内容 ---- */
+.wrap{max-width:1000px;margin:0 auto;padding:22px 22px 90px}
+.sec-title{display:flex;align-items:baseline;gap:10px;margin:22px 0 4px}
+.sec-title h2{font-size:20px;font-weight:800;color:var(--ink)}
+.sec-title span{font-size:13px;color:var(--muted)}
+.sec-sub{font-size:12.5px;color:var(--muted);margin-left:2px;width:100%}
+
+/* 筛选条 */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px;align-items:center}
+.fi{padding:6px 13px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:12.5px;font-weight:600}
+.fi.on{background:var(--purple);color:#fff;border-color:var(--purple)}
+.fi-row{width:100%;height:1px;background:var(--line);margin:4px 0}
+.f-label{font-size:11.5px;color:#9B9BAC;margin-right:2px;width:100%}
+
+/* 空态 */
+.empty{text-align:center;color:var(--muted);padding:46px 0;font-size:14px}
+.empty .big{font-size:34px;margin-bottom:8px}
+
+/* 绘本网格 */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px;margin-top:14px}
+.book{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;padding:9px;cursor:pointer;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.book:hover{transform:translateY(-4px);box-shadow:0 14px 28px rgba(34,35,58,.09)}
+.book .thumb{border-radius:10px;overflow:hidden;aspect-ratio:3/2;background:#EEF0FA;position:relative}
+.book .thumb img{width:100%;height:100%;object-fit:cover}
+.book .pct{position:absolute;left:0;bottom:0;height:3px;background:#FFD43B;width:0}
+.book .name{font-size:13px;color:var(--ink);font-weight:600;padding:8px 4px 3px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.book .tags{display:flex;justify-content:center;gap:5px;flex-wrap:wrap}
+.book .tag{font-size:10.5px;color:var(--purple-ish,#8A86C0);background:var(--purple-soft);border-radius:99px;padding:2px 8px}
+.book .fav{position:absolute;top:14px;right:14px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.95);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:13px;z-index:2}
+.book .fav.faved{color:#E85D6B}
+.book .playing{position:absolute;top:14px;left:14px;font-size:11px;background:rgba(111,106,232,.9);color:#fff;border-radius:99px;padding:2px 8px;z-index:2}
+
+/* ---- 阅读视图 ---- */
+.reader-view{position:fixed;inset:0;z-index:60;background:var(--bg);display:none;flex-direction:column}
+.reader-view.show{display:flex}
+.r-top{display:flex;align-items:center;gap:12px;padding:13px 18px;background:var(--bg);border-bottom:1px solid var(--line)}
+.r-title{font-size:15px;font-weight:700;color:var(--purple-dark);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.icon-btn{border:none;background:transparent;font-size:20px;color:var(--purple-dark);padding:6px;line-height:1}
+.icon-btn.on{color:#E85D6B}
+.r-stage{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px;position:relative;overflow:hidden}
+.page-img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px;box-shadow:0 18px 44px rgba(34,35,58,.16);background:#fff}
+.tap-hint{position:absolute;left:50%;bottom:10%;transform:translateX(-50%);background:rgba(34,35,58,.55);color:#fff;font-size:11px;border-radius:99px;padding:4px 12px;opacity:0;transition:opacity .3s;pointer-events:none}
+.showing .tap-hint{opacity:1}
+.r-pageno{position:absolute;bottom:12px;right:16px;background:rgba(255,255,255,.92);color:var(--purple);font-size:12px;font-weight:700;padding:4px 11px;border-radius:99px}
+.r-controls{background:var(--bg);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));display:flex;gap:10px;justify-content:center;align-items:center}
+.ctl{padding:11px 0;border-radius:999px;font-size:14px;font-weight:700;flex:1;max-width:230px;border:none}
+.ctl.prev{background:#fff;color:var(--purple-dark);border:1.5px solid var(--line)}
+.ctl.next{background:var(--purple);color:#fff;box-shadow:0 8px 18px rgba(111,106,232,.28)}
+.ctl:disabled{opacity:.38;cursor:default}
+.nar{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--purple);color:var(--purple);background:#fff;font-size:17px;flex:none;display:flex;align-items:center;justify-content:center}
+.nar.playingt{background:var(--purple);color:#fff}
+.voice-wrap{display:flex;align-items:center;gap:6px;margin:0 6px;flex:none}
+.voice-sel{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:999px;padding:8px 10px;font-size:12px;max-width:110px}
+
+/* 登录弹窗 */
+.mask{position:fixed;inset:0;background:rgba(34,35,58,.4);z-index:80;display:none;align-items:center;justify-content:center;padding:24px}
+.mask.show{display:flex}
+.modal{background:#fff;border-radius:18px;padding:26px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 26px 60px rgba(34,35,58,.2)}
+.modal .ic{font-size:38px}
+.modal h3{font-size:18px;font-weight:800;color:var(--ink);margin:10px 0 6px}
+.modal p{font-size:13.5px;color:var(--muted);margin-bottom:18px}
+.modal .btns{display:flex;gap:10px;justify-content:center}
+.modal .btn{border:none;border-radius:999px;padding:10px 22px;font-size:13.5px;font-weight:700}
+.modal .btn.main{background:var(--purple);color:#fff}
+.modal .btn.ghost{background:#fff;color:var(--purple-dark);border:1.5px solid var(--line)}
+
+@media(max-width:560px){
+  .grid{grid-template-columns:repeat(3,1fr);gap:10px}
+  .wrap{padding:18px 14px 90px}
+  .topbar-in{padding:12px 14px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand" onclick="goHome()"><img src="assets/icon.png" alt="月芽故事岛">月芽故事岛</div>
+    <div class="spacer"></div>
+    <button class="pill only-dot" onclick="openLogin()">登录</button>
+  </div>
+</div>
+
+<div class="wrap" id="libraryView">
+  <div class="filters" id="ageFilters"></div>
+  <div class="f-label">年龄</div>
+  <div class="filters" id="tagFilters" style="margin-top:2px"></div>
+  <div class="f-label">主题</div>
+  <div class="filters" id="sortRow" style="margin-top:6px">
+    <button class="fi on" data-sort="recent">最近在读</button>
+    <button class="fi" data-sort="new">最新</button>
+    <button class="fi" data-sort="title">书名</button>
+  </div>
+  <div class="sec-title"><h2 id="gridTitle">全部绘本</h2><span id="gridCount"></span></div>
+  <div class="grid" id="bookGrid"></div>
+</div>
+
+<div class="reader-view" id="readerView">
+  <div class="r-top">
+    <button class="icon-btn" onclick="closeReader()">←</button>
+    <div class="r-title" id="rTitle"></div>
+    <button class="icon-btn" id="favBtn" onclick="toggleFav()">♡</button>
+  </div>
+  <div class="r-stage" id="rStage" onclick="pageTap(event)">
+    <img class="page-img" id="pageImg" alt="绘本页面">
+    <div class="tap-hint">点击左右翻页</div>
+    <div class="r-pageno" id="rPageNo"></div>
+  </div>
+  <div class="r-controls">
+    <button class="ctl prev" id="prevBtn" onclick="stepPage(-1)">‹ 上一页</button>
+    <select class="voice-sel" id="voiceSel" title="朗读音色"></select>
+    <button class="nar" id="narBtn" onclick="toggleNar()">▶</button>
+    <button class="ctl next" id="nextBtn" onclick="stepPage(1)">下一页 ›</button>
+  </div>
+</div>
+
+<div class="mask" id="loginMask" onclick="closeLogin(event)">
+  <div class="modal">
+    <div class="ic">🔐</div>
+    <h3>账号登录即将上线</h3>
+    <p>当前阅读进度、收藏与书架保存在本设备浏览器中。跨设备云端同步账号功能正在开发中，敬请期待。</p>
+    <div class="btns">
+      <button class="btn ghost" onclick="closeLogin(event,true)">知道了</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var R2 = 'https://r2.tinylabpro.com/';
+  var TTS = 'https://tts.tinylabpro.com/tts';
+  var VOICES = [
+    {v:'cosyvoice-v3-flash:longanhuan', label:'安欢 · 活泼女声'},
+    {v:'cosyvoice-v3-flash:longanyang', label:'盎然 · 温柔男声'},
+    {v:'cosyvoice-v3-flash:longfeifei_v3', label:'菲菲 · 甜美女声'},
+    {v:'cosyvoice-v3-flash:longanshuo_v3', label:'说书人 · 磁性男声'},
+    {v:'cosyvoice-v3-flash:longhuhu_v3', label:'虎虎 · 浑厚男声'}
+  ];
+  var cat = null;       // catalog
+  var byId = {};        // id -> book summary
+  var curBook = null;   // data book.json
+  var curPages = [];
+  var cur = 0;
+  var audio = null;     // audio element
+  var playing = false;
+
+  // ------- 状态持久化 -------
+  function jget(k,d){ try{var v=JSON.parse(localStorage.getItem('ms_'+k)); return v===null?d:v;}catch(e){return d;} }
+  function jset(k,v){ localStorage.setItem('ms_'+k, JSON.stringify(v)); }
+  var favs = jget('favs', []);
+  var progress = jget('progress', {});   // {id: {page, total, updated}}
+  function saveFavs(){ jset('favs', favs); }
+  function saveProg(){ jset('progress', progress); }
+
+  // ------- 筛选状态 -------
+  var curAge = 'all', curTag = 'all', curSort = 'recent';
+
+  // ------- 工具 -------
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function $id(id){ return document.getElementById(id); }
+  function cover(b){ return R2 + b.coverURL; }
+  function pageURL(idx){ return R2 + curBook.id + '/' + curPages[idx].imageKey; }
+
+  // ------- 初始化 -------
+  function init(){
+    // 音色下拉
+    var vs = $id('voiceSel');
+    VOICES.forEach(function(v,i){ var o=document.createElement('option'); o.value=v.v; o.textContent=v.label; if(i===0)o.selected=true; vs.appendChild(o); });
+    var savedVoice = localStorage.getItem('ms_voice');
+    if(savedVoice){ vs.value = savedVoice; }
+    vs.onchange = function(){ localStorage.setItem('ms_voice', this.value); if(audio) audio.pause(); setNarUI(false); };
+
+    // 加载目录
+    fetch(R2 + 'catalog.json').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){ cat=d; d.books.forEach(function(b){ byId[b.id]=b; }); buildFilters(); render(); })
+      .catch(function(e){ $id('bookGrid').innerHTML = '<div class="empty"><div class="big">😕</div>书目加载失败：'+esc(e.message)+'<br><br><button class="pill solid" onclick="location.reload()">重试</button></div>'; $id('gridCount').textContent=''; });
+
+    // 键盘翻页
+    document.addEventListener('keydown', function(e){
+      if(!$id('readerView').classList.contains('show')) return;
+      if(e.key==='ArrowLeft'){ stepPage(-1); } else if(e.key==='ArrowRight'){ stepPage(1); }
+    });
+  }
+
+  function buildFilters(){
+    var ages = ['all','2-3岁','4-5岁','6-7岁','8-10岁','2-10岁'];
+    var af = $id('ageFilters');
+    af.innerHTML='';
+    ages.forEach(function(a){
+      var b=document.createElement('button'); b.className='fi'+(a==='all'?' on':''); b.textContent = a==='all'?'全部年龄':a; b.dataset.v=a;
+      b.onclick=function(){ curAge=a; syncBtn(af,this); render(); };
+      af.appendChild(b);
+    });
+    var tags = cat.books.reduce(function(acc,b){ b.tags.forEach(function(t){ if(acc.indexOf(t)<0) acc.push(t); }); return acc; }, []);
+    tags.sort();
+    var tf = $id('tagFilters'); tf.innerHTML='';
+    ['all'].concat(tags).forEach(function(t){
+      var b=document.createElement('button'); b.className='fi'+(t==='all'?' on':''); b.textContent = t==='all'?'全部主题':t; b.dataset.v=t;
+      b.onclick=function(){ curTag=t; syncBtn(tf,this); render(); };
+      tf.appendChild(b);
+    });
+    var sr = $id('sortRow');
+    Array.prototype.forEach.call(sr.querySelectorAll('.fi'), function(b){
+      b.onclick=function(){ curSort=b.dataset.sort; syncBtn(sr,this); render(); };
+    });
+  }
+
+  function syncBtn(container, btn){ Array.prototype.forEach.call(container.querySelectorAll('.fi'),function(x){x.classList.remove('on');}); btn.classList.add('on'); }
+
+  function filtered(){
+    var arr = cat.books.slice();
+    var progArr = Object.keys(progress).map(function(k){return progress[k];});
+    function recency(id){ var p=progress[id]; return p? p.updated : 0; }
+    if(curSort==='recent'){ arr.sort(function(a,b){ return recency(b.id)-recency(a.id) || b.id.localeCompare(a.id); }); }
+    else if(curSort==='new'){ arr.sort(function(a,b){ return (cat.updatedAt||'').localeCompare(cat.updatedAt||''); }); }
+    else { arr.sort(function(a,b){ return String(a.title).localeCompare(String(b.title),'zh'); }); }
+    return arr.filter(function(b){
+      if(curAge!=='all' && b.ageRange!==curAge) return false;
+      if(curTag!=='all' && (b.tags||[]).indexOf(curTag)<0) return false;
+      return true;
+    });
+  }
+
+  function render(){
+    var arr = filtered();
+    $id('gridCount').textContent = arr.length + ' 本';
+    var html = '';
+    if(arr.length===0){ html = '<div class="empty"><div class="big">📚</div>没有符合条件的绘本</div>'; }
+    arr.forEach(function(b){
+      var p = progress[b.id];
+      var pct = p ? Math.round(((p.page||0)+1)/Math.max(1,p.total||1)*100) : 0;
+      var isFav = favs.indexOf(b.id)>=0;
+      var ttl = b.tags.map(function(t){ return '<span class="tag">'+esc(t)+'</span>'; }).join('');
+      html += '<div class="book" onclick="openBook(\''+b.id+'\')">' +
+              '<div class="thumb"><img loading="lazy" src="'+cover(b)+'" alt="'+esc(b.title)+'" onerror="this.parentNode.style.background=\'#EEF0FA\'"><div class="pct" style="width:'+pct+'%"></div></div>' +
+              '<div class="name">'+esc(b.title)+'</div>' +
+              '<div class="tags">'+ttl+'</div>' +
+              '<button class="fav'+(isFav?' faved':'')+'" onclick="event.stopPropagation();toggleFavFromList(\''+b.id+'\')">'+(isFav?'♥':'♡')+'</button>' +
+              (recencyActive(b.id)?'<span class="playing">继续阅读</span>':'') +
+              '</div>';
+    });
+    $id('bookGrid').innerHTML = html;
+  }
+  function recencyActive(id){ var p=progress[id]; if(!p) return false; var d=new Date()-new Date(p.updated); return d < 1000*60*60*24*7; }
+
+  // ------- 收藏 -------
+  function toggleFavFromList(id){
+    favs = favs.indexOf(id)>=0 ? favs.filter(function(x){return x!==id;}) : favs.concat(id);
+    saveFavs(); render();
+  }
+  function toggleFav(){
+    favs = favs.indexOf(curBook.id)>=0 ? favs.filter(function(x){return x!==curBook.id;}) : favs.concat(curBook.id);
+    saveFavs(); updateFavBtn();
+  }
+  function updateFavBtn(){ $id('favBtn').textContent = favs.indexOf(curBook.id)>=0 ? '♥' : '♡'; $id('favBtn').classList.toggle('on', favs.indexOf(curBook.id)>=0); }
+
+  // ------- 阅读视图 -------
+  function openBook(id){
+    var b = byId[id]; if(!b) return;
+    $id('rTitle').textContent = b.title;
+    $id('readerView').classList.add('show');
+    $id('pageImg').src = '';
+    $id('rStage').classList.remove('showing');
+    $id('rPageNo').textContent = '加载中…';
+    setNarUI(false);
+    fetch(R2 + b.bookUrl).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+      .then(function(d){
+        curBook = d; curPages = d.pages || [];
+        if(curPages.length===0) throw new Error('该绘本暂无页面');
+        // 恢复进度
+        var p = progress[id];
+        cur = (p && p.page>=0 && p.page<curPages.length) ? p.page : 0;
+        updateFavBtn();
+        setPage();
+      })
+      .catch(function(e){ $id('pageImg').src=''; $id('rPageNo').textContent='加载失败'; alert('绘本加载失败：'+e.message); });
+    window.scrollTo(0,0);
+  }
+  function closeReader(){ $id('readerView').classList.remove('show'); stopNar(); render(); }
+
+  function setPage(){
+    var img = $id('pageImg');
+    img.src = pageURL(cur);
+    $id('rPageNo').textContent = (cur+1) + ' / ' + curPages.length;
+    $id('prevBtn').disabled = cur===0;
+    $id('nextBtn').disabled = cur>=curPages.length-1;
+    // 保存进度
+    progress[curBook.id] = { page:cur, total:curPages.length, updated:new Date().toISOString() };
+    saveProg();
+    setNarUI(false);
+  }
+
+  function stepPage(d){
+    if(curBook && d<0 && cur<=0) return;
+    if(curBook && d>0 && cur>=curPages.length-1) return;
+    cur += d;
+    setPage();
+  }
+  function pageTap(ev){
+    var stage = $id('rStage');
+    stage.classList.add('showing'); clearTimeout(stage._t); stage._t=setTimeout(function(){stage.classList.remove('showing');},1200);
+    var w = stage.clientWidth;
+    var x = ev.clientX;
+    if(x < w*0.35){ stepPage(-1); } else if(x > w*0.65){ stepPage(1); }
+  }
+
+  // ------- 朗读(TTS) -------
+  function makeAudio(){ return new Audio(); }
+  function setNarUI(on){ var b=$id('narBtn'); b.textContent = on ? '⏸' : '▶'; b.classList.toggle('playingt', on); }
+  function stopNar(){ if(audio){ audio.pause(); audio.currentTime=0; } setNarUI(false); playing=false; }
+  function toggleNar(){
+    if(playing){ stopNar(); return; }
+    // 有预录音频则直接播本页
+    var pg = curPages[cur];
+    if(pg.audioKey){ playOnce(R2 + curBook.id + '/' + pg.audioKey); return; }
+    // 否则走 TTS 云合成
+    var text = (pg.caption || pg.text || '').trim();
+    if(!text){ alert('本页暂无朗读文字。'); return; }
+    var voice = VOICES.some(function(v){return v.v===$id('voiceSel').value;}) ? $id('voiceSel').value : VOICES[0].v;
+    var cache_key = curBook.id + '_' + String(pg.imageKey).replace(/[^a-zA-Z0-9]/g,'_');
+    synthesize(text, voice, cache_key);
+  }
+  function synthesize(text, voice, cache_key){
+    setNarUI(true);
+    fetch(TTS, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ text:text, voice:voice, cache_key:cache_key }) })
+      .then(function(r){
+        if(!r.ok){ return r.text().then(function(t){ throw new Error(t||('HTTP '+r.status)); }); }
+        return r.blob();
+      })
+      .then(function(blob){
+        if(!audio) audio = makeAudio();
+        audio.src = URL.createObjectURL(blob);
+        playing = true; setNarUI(true);
+        audio.onended = function(){ stopNar(); };
+        audio.onerror = function(){ stopNar(); alert('音频播放失败。'); };
+        audio.play().catch(function(){ stopNar(); alert('无法自动播放，请点击音量图标允许播放后重试。'); });
+      })
+      .catch(function(e){
+        setNarUI(false);
+        alert('语音合成失败：' + String(e.message||e).slice(0,120));
+      });
+  }
+  function playOnce(url){
+    if(!audio) audio = makeAudio();
+    audio.src = url; playing=true; setNarUI(true);
+    audio.onended=function(){ stopNar(); }; audio.onerror=function(){ stopNar(); };
+    audio.play().catch(function(){ stopNar(); alert('无法自动播放音频。'); });
+  }
+
+  // ------- 登录 & 首页 -------
+  function openLogin(){ $id('loginMask').classList.add('show'); }
+  function closeLogin(ev, any){ if(ev && ev.target!==$id('loginMask') && !any) return; $id('loginMask').classList.remove('show'); }
+  function goHome(){ if($id('readerView').classList.contains('show')){ closeReader(); } else { location.href='index.html'; } }
+
+  // 暴露给 onclick
+  window.openBook=openBook; window.closeReader=closeReader; window.stepPage=stepPage;
+  window.pageTap=pageTap; window.toggleFav=toggleFav; window.toggleNar=toggleNar;
+  window.openLogin=openLogin; window.closeLogin=closeLogin; window.goHome=goHome;
+  window.toggleFavFromList=toggleFavFromList;
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>
