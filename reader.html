@@ -442,8 +442,8 @@ img{display:block}
     // 有预录音频则直接播本页
     var pg = curPages[cur];
     if(pg.audioKey){ playOnce(R2 + curBook.id + '/' + pg.audioKey); return; }
-    // 否则走 TTS 云合成
-    var text = (pg.caption || pg.text || '').trim();
+    // 否则走 TTS 云合成（优先用干净的 text，避免 caption 字段的 OCR 乱码）
+    var text = (curPages[cur].text || curPages[cur].caption || '').trim();
     if(!text){ alert('本页暂无朗读文字。'); return; }
     var voice = VOICES.some(function(v){return v.v===$id('voiceSel').value;}) ? $id('voiceSel').value : VOICES[0].v;
     var cache_key = curBook.id + '_' + String(pg.imageKey).replace(/[^a-zA-Z0-9]/g,'_');
