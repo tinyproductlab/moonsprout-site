@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>绘本预览 - 月芽故事岛</title>
+<meta name="theme-color" content="#6F6AE8">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Segoe UI",Roboto,sans-serif;background:linear-gradient(180deg,#FFF9F1,#F4F0FF);color:#22233A;min-height:100vh;-webkit-font-smoothing:antialiased}
+.top{max-width:760px;margin:0 auto;padding:20px 20px 8px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.back{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #E9E6F4;color:#4B48B8;font-size:14px;font-weight:600;padding:9px 16px;border-radius:999px;text-decoration:none}
+.back:hover{opacity:.85}
+.book-title{font-size:16px;font-weight:700;color:#4B48B8;text-align:center;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brand{font-size:14px;font-weight:700;color:#6F6AE8}
+.reader{max-width:760px;margin:0 auto;padding:12px 20px 24px;display:flex;flex-direction:column;gap:16px}
+.page-card{position:relative;width:100%;border-radius:16px;overflow:hidden;background:#00008B66;background:#ebeaf5;box-shadow:0 16px 40px rgba(34,35,58,.12)}
+.page-card img{width:100%;display:block}
+.page-no{position:absolute;bottom:12px;right:14px;background:rgba(255,255,255,.92);color:#6F6AE8;font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px}
+.controls{display:flex;gap:12px;justify-content:center}
+.ctl{flex:1;max-width:220px;border:none;border-radius:999px;padding:13px;font-size:15px;font-weight:600;cursor:pointer}
+.ctl.prev{background:#fff;color:#4B48B8;border:1.5px solid #E9E6F4}
+.ctl.next{background:#6F6AE8;color:#fff;box-shadow:0 10px 22px rgba(111,106,232,.30)}
+.ctl:disabled{opacity:.4;cursor:default}
+.hint{text-align:center;font-size:13px;color:#8E8EA3}
+.hint a{color:#6F6AE8}
+.loading{text-align:center;color:#6F7287;padding:80px 0;font-size:15px}
+.err{text-align:center;color:#C0392B;padding:60px 20px}
+.err a{color:#6F6AE8}
+@media(max-width:560px){.ctl.prev{flex:1}.ctl.next{flex:1}.max-w-none} 
+</style>
+</head>
+<body>
+<div class="top">
+  <a class="back" href="/moonsprout-site/">← 返回首页</a>
+  <div class="book-title" id="title">绘本预览</div>
+  <div class="brand">月芽故事岛</div>
+</div>
+
+<div id="main" class="reader">
+  <div class="loading">正在加载绘本…</div>
+</div>
+
+<script>
+(function(){
+  var params = new URLSearchParams(location.search);
+  var id = params.get('id');
+  var title = params.get('title') || '绘本预览';
+  document.getElementById('title').textContent = title;
+  if(!id){ renderErr('缺少绘本参数'); return; }
+  var BOOKBase = 'https://r2.tinylabpro.com/' + id + '/';
+  var pages = [];
+  var cur = 0;
+  var maxPages = 8;
+
+  fetch(BOOKBase + 'book.json').then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){
+      var arr = data.pages || [];
+      pages = arr.map(function(p){ return p.imageKey; });
+      if(pages.length === 0){ throw new Error('没有页面'); }
+      if(pages.length > maxPages){ pages = pages.slice(0, maxPages); }
+      build();
+    })
+    .catch(function(e){ renderErr('加载失败：' + e.message); });
+
+  function build(){
+    document.getElementById('main').innerHTML =
+      '<div class="page-card"><img id="pageimg" src="" alt="绘本页"><div class="page-no" id="pageno"></div></div>' +
+      '<div class="controls">' +
+        '<button class="ctl prev" id="prev">‹ 上一页</button>' +
+        '<button class="ctl next" id="next">下一页 ›</button>' +
+      '</div>' +
+      '<div class="hint">左右点击翻页 · 点击“在 App Store 安装”体验全部绘本</div>';
+    document.getElementById('prev').onclick = function(){ step(-1); };
+    document.getElementById('next').onclick = function(){ step(1); };
+    show();
+  }
+
+  function show(){
+    var img = document.getElementById('pageimg');
+    img.src = BOOKBase + pages[cur];
+    img.onclick = function(){ step(1); };
+    document.getElementById('pageno').textContent = (cur+1) + ' / ' + pages.length;
+    var isLast = cur >= pages.length - 1;
+    document.getElementById('prev').disabled = cur === 0;
+    if(document.getElementById('next').textContent.indexOf('安装') === -1){
+      document.getElementById('next').textContent = isLast ? '在 App Store 安装 ›' : '下一页 ›';
+    }
+    if(isLast){
+      document.getElementById('next').onclick = function(){ location.href='https://testflight.apple.com/join/zuhezD8Z'; };
+    }
+  }
+  function step(d){
+    cur += d;
+    if(cur < 0) cur = 0;
+    if(cur >= pages.length) return; // 由 next 按钮在末页跳转安装
+    show();
+  }
+  function renderErr(msg){
+    document.getElementById('main').innerHTML =
+      '<div class="err"><p style="font-size:26px;margin-bottom:10px">😕</p><p>'+msg+'</p><br>'+
+      '<a href="https://testflight.apple.com/join/zuhezD8Z">前往 App Store 安装体验</a></div>';
+  }
+})();
+</script>
+</body>
+</html>
