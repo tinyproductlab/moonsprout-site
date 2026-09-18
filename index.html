@@ -95,12 +95,23 @@ a:hover{opacity:.85}
 @media(max-width:680px){
   .hero{flex-direction:column;text-align:center;gap:26px}
   .hero .sub{margin-inline:auto}
-  .hero .cta{justify-content:center}
+  .hero .cta{justify-content:center;flex-wrap:wrap}
   .hero h1{font-size:34px}
   .phone{width:196px}
   .floatcard{right:50%;transform:translateX(50%);bottom:-18px}
   .strip .item{min-width:90px}
   .strip .num{font-size:20px}
+  .nav-links{gap:14px;font-size:13px}
+  .nav-links a:nth-child(4){display:none}
+  .hero .cta .btn{font-size:14px;padding:11px 20px}
+}
+
+@media(max-width:375px){
+  .nav-links{gap:10px;font-size:12px}
+  .hero h1{font-size:28px}
+  .phone{width:168px}
+  .hero .cta{gap:8px}
+  .hero .cta .btn{font-size:13px;padding:10px 16px}
 }
 </style>
 </head>
