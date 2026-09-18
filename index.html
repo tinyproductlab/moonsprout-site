@@ -125,6 +125,7 @@ a:hover{opacity:.85}
       <div class="cta">
         <a class="btn primary" href="reader.html">在线免费阅读</a>
         <a class="btn ghost" href="https://apps.apple.com/cn/app/id6805715810" target="_blank" rel="noopener">↓ 下载 App</a>
+        <button class="btn ghost" id="pwaBtn" style="display:none;">📱 安装网页版</button>
       </div>
       <div class="meta">iOS · 需要 iOS 16 或更高版本 · 全部绘本免费阅读</div>
     </div>
@@ -204,6 +205,30 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(function(e){ console.warn('SW 注册失败：', e); });
   });
 }
+
+// PWA 安装
+var deferredPrompt = null;
+var pwaBtn = document.getElementById('pwaBtn');
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (pwaBtn) pwaBtn.style.display = '';
+});
+if (pwaBtn) {
+  pwaBtn.addEventListener('click', function() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(result) {
+      if (result.outcome === 'accepted') {
+        pwaBtn.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+  });
+}
+window.addEventListener('appinstalled', function() {
+  if (pwaBtn) pwaBtn.style.display = 'none';
+});
 </script>
 </body>
 </html>
