@@ -1,5 +1,5 @@
 /* 月芽故事岛 Service Worker：离线缓存应用外壳与绘本资源 */
-var CACHE = 'ms-reader-v1';
+var CACHE = 'ms-reader-v2';
 var SHELL = ['/', '/reader', '/index.html', '/reader.html', '/book.html', '/assets/icon.png'];
 
 self.addEventListener('install', function (e) {

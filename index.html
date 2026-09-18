@@ -187,7 +187,7 @@ a:hover{opacity:.85}
 <script>
 // 从 R2 动态加载绘本封面
   var R2 = 'https://r2.tinylabpro.com/';
-  fetch(R2 + 'catalog.json').then(function(r){ return r.json(); }).then(function(cat){
+  fetch(R2 + 'catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).then(function(cat){
     var grid = document.getElementById('bookGrid');
     if(!grid) return;
     grid.innerHTML = cat.books.map(function(b){
